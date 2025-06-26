@@ -4,6 +4,7 @@ import 'dart:async';
 import '../shared/top_app_bar.dart';
 import '../shared/bottom_nav_bar.dart';
 import '../../app/routes.dart';
+import '../../utils/logger.dart';
 
 // Google Maps API 키가 설정되어 있을 때만 import
 // import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -16,6 +17,13 @@ class WalkPage extends StatefulWidget {
 }
 
 class _WalkPageState extends State<WalkPage> {
+  @override
+  void initState() {
+    super.initState();
+    Logger.lifecycle('WalkPage', 'initState started');
+    Logger.info('Google Maps API key configured: $_hasGoogleMapsApiKey');
+    Logger.debug('Initial position: $_initialPosition');
+  }
   // 타이머 관련 변수
   Timer? _timer;
   int _elapsedSeconds = 0;
@@ -27,20 +35,25 @@ class _WalkPageState extends State<WalkPage> {
   int _carbonReduced = 0;
 
   // Google Maps 관련 변수
-  late GoogleMapController _mapController;
+  GoogleMapController? _mapController;
   static const LatLng _initialPosition = LatLng(37.5714, 126.9769); // 광화문 좌표
 
   // Google Maps API 키 설정 여부 확인
-  static const bool _hasGoogleMapsApiKey = false; // TODO: API 키 설정 후 true로 변경
+  static const bool _hasGoogleMapsApiKey = true; // API key is configured in iOS/Android native code
 
   @override
   void dispose() {
+    Logger.lifecycle('WalkPage', 'dispose started');
     _timer?.cancel();
+    Logger.debug('Timer cancelled');
     super.dispose();
+    Logger.lifecycle('WalkPage', 'dispose completed');
   }
 
   void _startTimer() {
+    Logger.debug('_startTimer called');
     if (!_isRunning) {
+      Logger.info('Starting walk timer');
       setState(() {
         _isRunning = true;
         _isPaused = false;
@@ -64,7 +77,9 @@ class _WalkPageState extends State<WalkPage> {
   }
 
   void _pauseTimer() {
+    Logger.debug('_pauseTimer called');
     if (_isRunning && !_isPaused) {
+      Logger.info('Pausing walk timer');
       setState(() {
         _isPaused = true;
       });
@@ -78,6 +93,8 @@ class _WalkPageState extends State<WalkPage> {
   }
 
   void _stopTimer() {
+    Logger.debug('_stopTimer called');
+    Logger.info('Stopping walk timer - Distance: $_distance km, Carbon reduced: $_carbonReduced g');
     setState(() {
       _isRunning = false;
       _isPaused = false;
@@ -96,23 +113,16 @@ class _WalkPageState extends State<WalkPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    Logger.lifecycle('WalkPage', 'build method called');
+    
+    try {
+      return Scaffold(
       appBar: const TopAppBar(title: 'PetZero'),
       backgroundColor: const Color(0xFFE3F4D6),
       body: Stack(
         children: [
-          // Google Maps
-          GoogleMap(
-            onMapCreated: (controller) => _mapController = controller,
-            initialCameraPosition: const CameraPosition(
-              target: _initialPosition,
-              zoom: 16,
-            ),
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            markers: _createMarkers(),
-          ),
+          // Google Maps with error handling
+          _buildMapWidget(),
 
           // 하단 정보 카드
           Align(
@@ -188,21 +198,89 @@ class _WalkPageState extends State<WalkPage> {
         onTap: (index) {
           switch (index) {
             case 0:
+              Logger.navigation('Navigating to Home', from: 'Walk', to: 'Home');
               Navigator.of(context).pushReplacementNamed(AppRoutes.home);
               break;
             case 1:
-              // 산책 페이지는 이미 현재 페이지
+              Logger.debug('Already on Walk page');
               break;
             case 2:
+              Logger.navigation('Navigating to Ranking', from: 'Walk', to: 'Ranking');
               Navigator.of(context).pushReplacementNamed(AppRoutes.ranking);
               break;
             case 3:
+              Logger.navigation('Navigating to Community', from: 'Walk', to: 'Community');
               Navigator.of(context).pushReplacementNamed(AppRoutes.community);
               break;
           }
         },
       ),
     );
+    } catch (e, stackTrace) {
+      Logger.error('Error building WalkPage', error: e, stackTrace: stackTrace);
+      return Scaffold(
+        appBar: const TopAppBar(title: 'PetZero'),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('산책 페이지를 불러올 수 없습니다.\n$e'),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildMapWidget() {
+    try {
+      Logger.debug('Building Google Map widget');
+      return GoogleMap(
+        onMapCreated: (controller) {
+          Logger.info('Google Map created');
+          try {
+            _mapController = controller;
+            Logger.debug('Map controller assigned successfully');
+          } catch (e, stackTrace) {
+            Logger.error('Failed to assign map controller', error: e, stackTrace: stackTrace);
+          }
+        },
+        initialCameraPosition: const CameraPosition(
+          target: _initialPosition,
+          zoom: 16,
+        ),
+        myLocationEnabled: true,
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: false,
+        markers: _createMarkers(),
+      );
+    } catch (e, stackTrace) {
+      Logger.error('Failed to build Google Map widget', error: e, stackTrace: stackTrace);
+      return Container(
+        color: Colors.grey[300],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.map, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              Text(
+                '지도를 불러올 수 없습니다',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '오류: $e',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   Set<Marker> _createMarkers() {
