@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/logger.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -39,7 +40,15 @@ class BottomNavBar extends StatelessWidget {
     final isSelected = index == selectedIndex;
 
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: () {
+        Logger.navigation(
+          'Tab tapped',
+          from: _getTabName(selectedIndex),
+          to: _getTabName(index),
+        );
+        Logger.debug('Navigation index changed from $selectedIndex to $index');
+        onTap(index);
+      },
       behavior: HitTestBehavior.translucent,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
@@ -64,5 +73,20 @@ class BottomNavBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getTabName(int index) {
+    switch (index) {
+      case 0:
+        return '홈';
+      case 1:
+        return '산책';
+      case 2:
+        return '랭킹';
+      case 3:
+        return '커뮤니티';
+      default:
+        return 'Unknown';
+    }
   }
 }

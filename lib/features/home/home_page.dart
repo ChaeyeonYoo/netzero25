@@ -4,6 +4,7 @@ import '../shared/top_app_bar.dart';
 import '../shared/bottom_nav_bar.dart';
 import '../../widgets/record_popup.dart';
 import '../../app/routes.dart';
+import '../../utils/logger.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -80,14 +81,22 @@ class HomePage extends StatelessWidget {
           switch (index) {
             case 0:
               // 홈 페이지는 이미 현재 페이지
+              Logger.debug('Already on Home page');
               break;
             case 1:
-              Navigator.of(context).pushReplacementNamed(AppRoutes.walk);
+              Logger.navigation('Navigating to Walk page', from: 'Home', to: 'Walk');
+              try {
+                Navigator.of(context).pushReplacementNamed(AppRoutes.walk);
+              } catch (e, stackTrace) {
+                Logger.error('Failed to navigate to Walk page', error: e, stackTrace: stackTrace);
+              }
               break;
             case 2:
+              Logger.navigation('Navigating to Ranking page', from: 'Home', to: 'Ranking');
               Navigator.of(context).pushNamed(AppRoutes.ranking);
               break;
             case 3:
+              Logger.navigation('Navigating to Community page', from: 'Home', to: 'Community');
               Navigator.of(context).pushNamed(AppRoutes.community);
               break;
           }
