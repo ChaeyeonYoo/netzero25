@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
 import '../shared/top_app_bar.dart';
 import '../shared/bottom_nav_bar.dart';
 import '../../app/routes.dart';
-import '../../widgets/kakao_map_widget.dart';
+
+// Google Maps API 키가 설정되어 있을 때만 import
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class WalkPage extends StatefulWidget {
   const WalkPage({super.key});
@@ -23,9 +26,12 @@ class _WalkPageState extends State<WalkPage> {
   double _distance = 0.0;
   int _carbonReduced = 0;
 
-  // 지도 관련 변수
-  static const double _initialLatitude = 37.5714; // 광화문 위도
-  static const double _initialLongitude = 126.9769; // 광화문 경도
+  // Google Maps 관련 변수
+  late GoogleMapController _mapController;
+  static const LatLng _initialPosition = LatLng(37.5714, 126.9769); // 광화문 좌표
+
+  // Google Maps API 키 설정 여부 확인
+  static const bool _hasGoogleMapsApiKey = false; // TODO: API 키 설정 후 true로 변경
 
   @override
   void dispose() {
@@ -95,12 +101,17 @@ class _WalkPageState extends State<WalkPage> {
       backgroundColor: const Color(0xFFE3F4D6),
       body: Stack(
         children: [
-          // 카카오맵
-          KakaoMapWidget(
-            latitude: _initialLatitude,
-            longitude: _initialLongitude,
-            zoom: 16,
-            showMyLocation: true,
+          // Google Maps
+          GoogleMap(
+            onMapCreated: (controller) => _mapController = controller,
+            initialCameraPosition: const CameraPosition(
+              target: _initialPosition,
+              zoom: 16,
+            ),
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            markers: _createMarkers(),
           ),
 
           // 하단 정보 카드
@@ -192,6 +203,30 @@ class _WalkPageState extends State<WalkPage> {
         },
       ),
     );
+  }
+
+  Set<Marker> _createMarkers() {
+    return {
+      // 쓰레기통 마커들
+      Marker(
+        markerId: const MarkerId('trash_bin_1'),
+        position: const LatLng(37.5722, 126.9769),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: const InfoWindow(title: '쓰레기통', snippet: '배변봉투 버리기'),
+      ),
+      Marker(
+        markerId: const MarkerId('trash_bin_2'),
+        position: const LatLng(37.5710, 126.9775),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: const InfoWindow(title: '쓰레기통', snippet: '배변봉투 버리기'),
+      ),
+      Marker(
+        markerId: const MarkerId('trash_bin_3'),
+        position: const LatLng(37.5700, 126.9760),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: const InfoWindow(title: '쓰레기통', snippet: '배변봉투 버리기'),
+      ),
+    };
   }
 }
 
