@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../features/camera/camera_page.dart';
 import '../app/routes.dart';
 
-Widget buildRecordPopup(BuildContext context) {
+Widget buildRecordPopup(
+  BuildContext context, {
+  VoidCallback? onRecordComplete,
+}) {
   return AlertDialog(
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     titlePadding: const EdgeInsets.only(top: 16, left: 16, right: 8),
@@ -37,7 +40,10 @@ Widget buildRecordPopup(BuildContext context) {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder:
-                    (context) => const CameraPage(recordType: RecordType.poop),
+                    (context) => CameraPage(
+                      recordType: RecordType.poop,
+                      onRecordComplete: onRecordComplete,
+                    ),
               ),
             );
           },
@@ -51,7 +57,10 @@ Widget buildRecordPopup(BuildContext context) {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder:
-                    (context) => const CameraPage(recordType: RecordType.food),
+                    (context) => CameraPage(
+                      recordType: RecordType.food,
+                      onRecordComplete: onRecordComplete,
+                    ),
               ),
             );
           },

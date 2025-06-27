@@ -5,9 +5,11 @@ import 'package:camera/camera.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../services/ai_service.dart';
+import '../../services/score_service.dart';
 import '../shared/bottom_nav_bar.dart';
 import '../../app/routes.dart';
 import '../../models/ai_analysis_result.dart';
+import '../../core/logger.dart';
 
 enum RecordType {
   poop, // 배설 기록
@@ -16,8 +18,13 @@ enum RecordType {
 
 class CameraPage extends StatefulWidget {
   final RecordType recordType;
+  final VoidCallback? onRecordComplete;
 
-  const CameraPage({super.key, required this.recordType});
+  const CameraPage({
+    super.key,
+    required this.recordType,
+    this.onRecordComplete,
+  });
 
   @override
   State<CameraPage> createState() => _CameraPageState();
@@ -331,6 +338,53 @@ class _CameraPageState extends State<CameraPage> {
                               ),
                             ),
                             SizedBox(height: 8),
+
+                            // AI 조언 섹션 (음식 분석일 때만)
+                            if (result.advice.isNotEmpty) ...[
+                              Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.orange.shade200,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.lightbulb_outline,
+                                          color: Colors.orange.shade700,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'AI 조언',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: Colors.orange.shade700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      result.advice,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.orange.shade800,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                            ],
                           ] else ...[
                             // 배변 분석인 경우 기존 표시
                             // 점수 표시
@@ -379,7 +433,13 @@ class _CameraPageState extends State<CameraPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // 분석 성공 시 점수 추가
+                  if (result.success) {
+                    _addScoreAfterAnalysis(result);
+                  }
+                },
                 child: Text('확인'),
               ),
             ],
@@ -402,6 +462,40 @@ class _CameraPageState extends State<CameraPage> {
             ],
           ),
     );
+  }
+
+  // 분석 완료 후 점수 추가
+  Future<void> _addScoreAfterAnalysis(AiAnalysisResult result) async {
+    try {
+      final scoreService = ScoreService.instance;
+
+      if (widget.recordType == RecordType.poop) {
+        // 배변 기록: 10점 추가
+        Logger.info('배변 기록 점수 추가', context: 'CameraPage');
+        await scoreService.addPoopRecord();
+      } else if (widget.recordType == RecordType.food) {
+        // 음식 기록: 탄소 점수 추가 + AI 조언 저장
+        final carbonScore = result.carbonScore.toDouble();
+        final aiAdvice = result.advice; // AI 조언 추출
+
+        Logger.info('음식 기록 점수 추가 - 탄소 점수: $carbonScore', context: 'CameraPage');
+        Logger.info('AI 조언: $aiAdvice', context: 'CameraPage');
+
+        await scoreService.addFoodRecord(carbonScore, aiAdvice: aiAdvice);
+      }
+
+      // 콜백 호출
+      widget.onRecordComplete?.call();
+
+      Logger.info('점수 추가 완료', context: 'CameraPage');
+    } catch (e, stackTrace) {
+      Logger.error(
+        '점수 추가 실패',
+        context: 'CameraPage',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   void _toggleCamera() async {

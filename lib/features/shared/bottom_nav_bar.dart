@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/logger.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -12,6 +13,11 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Logger.debug(
+      'BottomNavBar build 호출 - selectedIndex: $selectedIndex',
+      context: 'BottomNavBar',
+    );
+
     return Container(
       height: 70,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -39,7 +45,10 @@ class BottomNavBar extends StatelessWidget {
     final isSelected = index == selectedIndex;
 
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: () {
+        Logger.info('탭 클릭: $label (index: $index)', context: 'BottomNavBar');
+        onTap(index);
+      },
       behavior: HitTestBehavior.translucent,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),

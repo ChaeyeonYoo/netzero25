@@ -141,6 +141,61 @@ class AiAnalysisResult {
     final score = 50 + ((90 - emissions) / (90 - 50)) * 40;
     return score.round();
   }
+
+  // AI 조언 추출 (예: "조단백질의 양을 줄여보세요!")
+  String get advice {
+    if (message.isEmpty) return '';
+
+    // markdown 코드 블록 제거
+    String cleanString = message;
+    if (cleanString.contains('```plaintext')) {
+      cleanString =
+          cleanString
+              .replaceAll('```plaintext', '')
+              .replaceAll('```', '')
+              .trim();
+    }
+
+    // 줄바꿈으로 분리
+    final lines = cleanString.split('\n');
+
+    // 각 줄에서 조언 패턴 찾기
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+
+      // 조언 패턴들 (끝에 느낌표가 있는 문장)
+      if (trimmedLine.contains('!') &&
+          (trimmedLine.contains('보세요') ||
+              trimmedLine.contains('해보세요') ||
+              trimmedLine.contains('줄여') ||
+              trimmedLine.contains('늘려') ||
+              trimmedLine.contains('바꿔') ||
+              trimmedLine.contains('추천') ||
+              trimmedLine.contains('권장'))) {
+        return trimmedLine;
+      }
+
+      // "~하세요" 패턴
+      if (trimmedLine.endsWith('하세요') || trimmedLine.endsWith('하세요!')) {
+        return trimmedLine;
+      }
+    }
+
+    // 탄소 배출량이 높은 경우 기본 조언
+    final emissions = carbonEmissionsKg;
+    if (emissions > 50) {
+      return '탄소 배출량이 높습니다. 식단을 조정해보세요!';
+    }
+
+    return '';
+  }
+
+  // 탄소 배출량만 추출 (숫자)
+  String get carbonEmissionsText {
+    final emissions = carbonEmissionsKg;
+    if (emissions <= 0) return '0.0';
+    return emissions.toStringAsFixed(2);
+  }
 }
 
 // 배변 분석 결과 모델
